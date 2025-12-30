@@ -7,7 +7,7 @@ print(df['asset_type'].unique())
 
 from processing import apply_filters, get_heaviest, compute_suggestions
 
-df = load_metadata("data/moana_metadata.csv")
+df = load_metadata("../data/moana_metadata.csv")
 
 filtered = apply_filters(df, asset_type="main", poly_range=(0, 1_000_000))
 print(filtered.head())

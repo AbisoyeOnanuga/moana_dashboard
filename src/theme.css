@@ -1,9 +1,14 @@
 /* Moana Dashboard Theme */
 
 body {
-    background: linear-gradient(180deg, #e3f6ff 0%, #ffffff 40%);
-    font-family: "Segoe UI", sans-serif;
+    background: #f7fbff;
     color: #0b3d4f;
+    font-family: "Segoe UI", sans-serif;
+}
+
+.dark body {
+    background: #1e1e1e;
+    color: #e6e6e6;
 }
 
 /* Containers (Taipy panels) */

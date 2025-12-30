@@ -1,4 +1,5 @@
-from taipy import Gui
+#from taipy import Gui
+from taipy.gui import Gui as ui
 import pandas as pd
 
 from data_loader import load_metadata
@@ -8,7 +9,7 @@ from pages.dashboard_page import create_dashboard_page
 # Load metadata
 # ---------------------------------------------------------
 
-df = load_metadata("data/moana_metadata.csv")
+df = load_metadata("../data/moana_metadata.csv")
 
 # ---------------------------------------------------------
 # Initial State
@@ -37,5 +38,5 @@ page = create_dashboard_page(state, df)
 # Run the app
 # ---------------------------------------------------------
 
-app = Gui(page, css_file="theme.css")
+app = ui(page, css_file="theme.css")
 app.run(title="Moana Technical Artist Dashboard", dark_mode=False)

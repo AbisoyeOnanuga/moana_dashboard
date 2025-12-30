@@ -73,7 +73,7 @@ def extract_main_geometry(element_name, elem_dict, dataset_root, obj_root):
         "file_size_mb": file_size,
         "instance_count": instance_count,
         "scene_name": element_name,
-        "obj_path": obj_path
+        "location": obj_path
     })
 
     return rows
@@ -101,7 +101,7 @@ def extract_variants(element_name, elem_dict, dataset_root, obj_root):
             "file_size_mb": file_size,
             "instance_count": instance_count,
             "scene_name": element_name,
-            "obj_path": obj_path
+            "location": obj_path
         })
 
     return rows
@@ -135,7 +135,7 @@ def extract_primitives(element_name, elem_dict, dataset_root, json_root, obj_roo
                     "file_size_mb": file_size,
                     "instance_count": instance_count,
                     "scene_name": element_name,
-                    "obj_path": obj_path
+                    "location": obj_path
                 })
 
         # Curve primitives have no OBJ
@@ -147,7 +147,7 @@ def extract_primitives(element_name, elem_dict, dataset_root, json_root, obj_roo
                 "file_size_mb": None,
                 "instance_count": len(prim_dict),
                 "scene_name": element_name,
-                "obj_path": None
+                "location": None
             })
 
         # Element primitives reference variants or nested elements
@@ -160,7 +160,7 @@ def extract_primitives(element_name, elem_dict, dataset_root, json_root, obj_roo
                     "file_size_mb": None,
                     "instance_count": len(instances),
                     "scene_name": element_name,
-                    "obj_path": None
+                    "location": None
                 })
 
     return rows

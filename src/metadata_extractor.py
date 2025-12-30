@@ -30,12 +30,30 @@ def get_file_size_mb(path):
         return None
     return os.path.getsize(path) / (1024 * 1024)
 
+def resolve_obj_path(obj_rel, dataset_root, obj_root, element_name):
+    """
+    Normalize OBJ paths from the Moana JSON.
+    Handles cases where JSON paths already include 'obj/...'.
+    """
+    # Normalize slashes
+    obj_rel = obj_rel.replace("\\", "/")
+
+    # Case 1: JSON already gives a full relative path like "obj/isBeach/file.obj"
+    if obj_rel.startswith("obj/"):
+        obj_path = os.path.join(dataset_root, obj_rel)
+
+    # Case 2: JSON gives only a filename like "isBeach_main.obj"
+    else:
+        obj_path = os.path.join(obj_root, element_name, obj_rel)
+
+    # Normalize final path for Windows/Linux
+    return os.path.normpath(obj_path)
 
 # ---------------------------------------------------------
 # Extraction logic
 # ---------------------------------------------------------
 
-def extract_main_geometry(element_name, elem_dict, obj_root):
+def extract_main_geometry(element_name, elem_dict, dataset_root, obj_root):
     """Extract metadata for the main geometry of an element."""
     rows = []
 
@@ -43,7 +61,7 @@ def extract_main_geometry(element_name, elem_dict, obj_root):
     if not obj_rel:
         return rows
 
-    obj_path = os.path.join(obj_root, element_name, obj_rel)
+    obj_path = resolve_obj_path(obj_rel, dataset_root, obj_root, element_name)
     poly_count = count_obj_faces(obj_path)
     file_size = get_file_size_mb(obj_path)
     instance_count = len(elem_dict.get("instancedCopies", [])) or 1
@@ -61,7 +79,7 @@ def extract_main_geometry(element_name, elem_dict, obj_root):
     return rows
 
 
-def extract_variants(element_name, elem_dict, obj_root):
+def extract_variants(element_name, elem_dict, dataset_root, obj_root):
     """Extract metadata for variant geometries."""
     rows = []
     variants = elem_dict.get("variants", {})
@@ -71,7 +89,7 @@ def extract_variants(element_name, elem_dict, obj_root):
         if not obj_rel:
             continue
 
-        obj_path = os.path.join(obj_root, element_name, obj_rel)
+        obj_path = resolve_obj_path(obj_rel, dataset_root, obj_root, element_name)
         poly_count = count_obj_faces(obj_path)
         file_size = get_file_size_mb(obj_path)
         instance_count = len(vdict.get("instancedCopies", [])) or 1
@@ -89,7 +107,7 @@ def extract_variants(element_name, elem_dict, obj_root):
     return rows
 
 
-def extract_primitives(element_name, elem_dict, json_root, obj_root):
+def extract_primitives(element_name, elem_dict, dataset_root, json_root, obj_root):
     """Extract metadata for instanced primitives."""
     rows = []
     primitives = elem_dict.get("instancedPrimitiveJsonFiles", {})
@@ -105,7 +123,7 @@ def extract_primitives(element_name, elem_dict, json_root, obj_root):
         # Archive primitives contain OBJ references
         if prim_type == "archive":
             for archive_path, instances in prim_dict.items():
-                obj_path = archive_path
+                obj_path = resolve_obj_path(archive_path, dataset_root, obj_root, element_name)
                 poly_count = count_obj_faces(obj_path)
                 file_size = get_file_size_mb(obj_path)
                 instance_count = len(instances)
@@ -170,9 +188,9 @@ def walk_dataset(dataset_root):
         elem_dict = read_json(element_json)
 
         # Extract all metadata
-        all_rows.extend(extract_main_geometry(element_name, elem_dict, obj_root))
-        all_rows.extend(extract_variants(element_name, elem_dict, obj_root))
-        all_rows.extend(extract_primitives(element_name, elem_dict, json_root, obj_root))
+        all_rows.extend(extract_main_geometry(element_name, elem_dict, dataset_root, obj_root))
+        all_rows.extend(extract_variants(element_name, elem_dict, dataset_root, obj_root))
+        all_rows.extend(extract_primitives(element_name, elem_dict, dataset_root, json_root, obj_root))
 
     return all_rows
 

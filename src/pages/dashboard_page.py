@@ -52,26 +52,32 @@ def create_dashboard_page(state, df):
     # -----------------------------------------------------
     # Build UI Layout
     # -----------------------------------------------------
-    return ui.page(
-        ui.row(
-            ui.column(
-                filters_panel(state, df),
-                width=3
-            ),
-            ui.column(
-                file_size_treemap(filtered_df),
-                width=9
-            )
-        ),
+    return f"""
+    # Moana Technical Artist Dashboard
 
-        ui.row(
-            ui.column(
-                asset_table_grouped(filtered_df),
-                width=8
-            ),
-            ui.column(
-                suggestions_panel(suggestions),
-                width=4
-            )
-        )
-    )
+    <|layout|columns=3 9|gap=20px|>
+
+    <|
+    ### Filters
+    <|{filters_panel(state, df)}|container|>
+    |>
+
+    <|
+    ### File Size Treemap
+    <|{file_size_treemap(filtered_df)}|container|>
+    |>
+
+    ---
+
+    <|layout|columns=8 4|gap=20px|>
+
+    <|
+    ### Assets by Scene
+    <|{asset_table_grouped(filtered_df)}|container|>
+    |>
+    
+    <|
+    ### Optimization Suggestions
+    <|{suggestions_panel(suggestions)}|container|>
+    |>
+    """

@@ -8,7 +8,7 @@ REQUIRED_COLUMNS = [
     "file_size_mb",
     "instance_count",
     "scene_name",
-    "obj_path"
+    "location"
 ]
 
 def load_metadata(csv_path):

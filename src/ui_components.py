@@ -1,4 +1,5 @@
 #from taipy import gui as ui
+import os
 from taipy.gui import Gui as ui
 
 # ---------------------------------------------------------
@@ -8,17 +9,35 @@ from taipy.gui import Gui as ui
 
 def asset_table_grouped(df):
     """
-    Returns a list of UI expanders, one per scene_name.
-    Each expander contains a sortable table of assets.
+    Returns Taipy markup: one expandable section per scene_name,
+    each containing a compact, readable table.
     """
+
     blocks = ""
 
     for scene, group_df in df.groupby("scene_name"):
+        # Work on a copy so we don't touch the original df
+        view = group_df.copy()
+
+        # Shorten file path
+        if "file_path" in view.columns:
+            view["file_name"] = view["file_path"].apply(lambda p: os.path.basename(str(p)))
+            view["folder"] = view["file_path"].apply(
+                lambda p: os.path.basename(os.path.dirname(str(p)))
+            )
+
+        # Only show readable columns
+        cols = ["asset_name", "asset_type", "poly_count", "file_size_mb", "file_name", "folder"]
+        cols = [c for c in cols if c in view.columns]
+        view = view[cols]
+
         blocks += f"""
-<|{scene}|expandable|>
-<|{group_df}|table|height=300px|>
+<|{scene}|expandable|collapsed=True|>
+<|{view}|table|height=300px|>
 """
+
     return blocks
+
 
 
 # ---------------------------------------------------------
@@ -44,10 +63,10 @@ def file_size_treemap(df):
 # Filters Panel
 # ---------------------------------------------------------
 
-def filters_panel(state, df):    
+def filters_panel(state, df):
     """
     UI panel for filtering assets.
-    State should contain:
+        State should contain:
         state.asset_type
         state.poly_min
         state.poly_max
@@ -56,40 +75,51 @@ def filters_panel(state, df):
         state.scene_filter
         state.heavy_only
     """
+    asset_types = ['All'] + sorted(df['asset_type'].dropna().unique().tolist())
+    scenes = ['All'] + sorted(df['scene_name'].dropna().unique().tolist())
+
     return f"""
-    <|layout|columns=1|gap=10px|>
+<|layout|columns=1|gap=12px|>
 
-    **Asset Type**  
-    <|{state.asset_type}|selector|lov={['All'] + sorted(df['asset_type'].unique().tolist())}|on_change=asset_type|>
+**Asset Type**  
+<|{state.asset_type}|selector|lov={asset_types}|on_change=asset_type|>
 
-    **Poly Count Range**  
-    <|{state.poly_min}|slider|min=0|max={int(df['poly_count'].max())}|on_change=poly_min|>  
-    <|{state.poly_max}|slider|min=0|max={int(df['poly_count'].max())}|on_change=poly_max|>
+**Poly Count Min**  
+<|{state.poly_min}|slider|min=0|max={int(df['poly_count'].max())}|on_change=poly_min|>
 
-    **File Size (MB)**  
-    <|{state.file_min}|slider|min=0|max={int(df['file_size_mb'].max())}|on_change=file_min|>  
-    <|{state.file_max}|slider|min=0|max={int(df['file_size_mb'].max())}|on_change=file_max|>
+**Poly Count Max**  
+<|{state.poly_max}|slider|min=0|max={int(df['poly_count'].max())}|on_change=poly_max|>
 
-    **Scene Filter**  
-    <|{state.scene_filter}|selector|lov={['All'] + sorted(df['scene_name'].unique().tolist())}|on_change=scene_filter|>
+**File Size Min (MB)**  
+<|{state.file_min}|slider|min=0|max={int(df['file_size_mb'].max())}|on_change=file_min|>
 
-    **Heavy Only**  
-    <|{state.heavy_only}|toggle|on_change=heavy_only|>
+**File Size Max (MB)**  
+<|{state.file_max}|slider|min=0|max={int(df['file_size_mb'].max())}|on_change=file_max|>
 
-    </|layout|>
+**Scene Filter**  
+<|{state.scene_filter}|selector|lov={scenes}|on_change=scene_filter|>
+
+**Heavy Only**  
+<|{state.heavy_only}|toggle|on_change=heavy_only|>
+
+</|layout|>
 """
-
 
 
 # ---------------------------------------------------------
 # Suggestions Panel
 # ---------------------------------------------------------
 
-def suggestions_panel(suggestions):     
+def suggestions_panel(suggestions):
+    if not suggestions:
+        return "No optimization suggestions for the current filters."
+    
+    items = "\n".join(f"- {s}" for s in suggestions)
+
     """
     Display optimization suggestions as a list.
     """
     return f""" 
-    <|Optimization Suggestions|expandable|>
-    <|{suggestions}|list|>
+<|Optimization Suggestions|expandable|>
+{items}
 """

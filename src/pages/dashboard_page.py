@@ -1,11 +1,11 @@
 from taipy import gui as ui
-from processing import apply_filters, compute_suggestions
 from ui_components import (
-    asset_table_grouped,
-    file_size_treemap,
     filters_panel,
+    file_size_treemap,
+    asset_table_grouped,
     suggestions_panel
 )
+from processing import apply_filters, compute_suggestions
 
 # ---------------------------------------------------------
 # Dashboard Page
@@ -52,32 +52,33 @@ def create_dashboard_page(state, df):
     # -----------------------------------------------------
     # Build UI Layout
     # -----------------------------------------------------
+    # IMPORTANT: do NOT wrap components that already return markup
     return f"""
-    # Moana Technical Artist Dashboard
+# Moana Technical Artist Dashboard
 
-    <|layout|columns=3 9|gap=20px|>
+<|layout|columns=3 9|gap=20px|>
 
-    <|
-    ### Filters
-    <|{filters_panel(state, df)}|container|>
-    |>
+<|
+### Filters
+{filters_panel(state, df)}
+|>
 
-    <|
-    ### File Size Treemap
-    <|{file_size_treemap(filtered_df)}|container|>
-    |>
+<|
+### File Size Treemap
+{file_size_treemap(filtered_df)}
+|>
 
-    ---
+---
 
-    <|layout|columns=8 4|gap=20px|>
+<|layout|columns=8 4|gap=20px|>
 
-    <|
-    ### Assets by Scene
-    <|{asset_table_grouped(filtered_df)}|container|>
-    |>
-    
-    <|
-    ### Optimization Suggestions
-    <|{suggestions_panel(suggestions)}|container|>
-    |>
-    """
+<|
+### Assets by Scene
+{asset_table_grouped(filtered_df)}
+|>
+
+<|
+### Optimization Suggestions
+{suggestions_panel(suggestions)}
+|>
+"""

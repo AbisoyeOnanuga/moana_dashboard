@@ -202,7 +202,7 @@ def write_csv(rows, output_path):
 
 if __name__ == "__main__":
     dataset_root = "D:/Downloads/island/"   # <-- update this path
-    output_path = "data/moana_metadata.csv"
+    output_path = "../data/moana_metadata.csv"
 
     rows = walk_dataset(dataset_root)
     write_csv(rows, output_path)

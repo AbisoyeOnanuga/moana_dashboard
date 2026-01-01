@@ -10,7 +10,7 @@ from processing import apply_filters, compute_suggestions
 # ---------------------------------------------------------
 # Load the Moana dataset
 # ---------------------------------------------------------
-df = load_metadata("data/moana_metadata.csv")
+df = load_metadata("../data/moana_metadata.csv")
 
 # Basic global stats for the whole collection
 total_assets = len(df)

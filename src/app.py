@@ -267,6 +267,8 @@ Dark mode
 
 The sections below group assets by scene. Each scene can be expanded or collapsed.
 
+<|{scenes_page_dynamic}|text|raw=True|>
+</|layout|>
 <|layout|columns=1|gap=10px|>
 
 """
@@ -399,7 +401,7 @@ def on_init(state):
 # ---------------------------------------------------------
 if __name__ == "__main__":
     gui = Gui(pages={"Overview": overview_page,
-                     "Scenes": lambda s: s.scenes_page_dynamic if hasattr(s, "scenes_page_dynamic") else scenes_page,
+                     "Scenes": scenes_page,
                      "Assets": assets_page,
                      "Settings": settings_page},
               css_file="theme.css")

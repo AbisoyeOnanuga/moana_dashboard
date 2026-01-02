@@ -392,7 +392,7 @@ def on_init(state):
 
     # Attach dynamic blocks to the scenes page
     state.scenes_page_dynamic = (
-        scenes_page + "\n".join(scene_blocks) + "\n</|layout|>\n"
+        "\n".join(scene_blocks)
     )
 
 
@@ -400,11 +400,15 @@ def on_init(state):
 # Entry point
 # ---------------------------------------------------------
 if __name__ == "__main__":
-    gui = Gui(pages={"Overview": overview_page,
-                     "Scenes": scenes_page,
-                     "Assets": assets_page,
-                     "Settings": settings_page},
-              css_file="theme.css")
+    gui = Gui(
+        pages={
+            "Overview": overview_page,
+            "Scenes": scenes_page,
+            "Assets": assets_page,
+            "Settings": settings_page
+        },
+        css_file="theme.css"
+    )
 
     gui.run(
         title="Moana Technical Artist Dashboard",

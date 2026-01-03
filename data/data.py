@@ -108,13 +108,11 @@ def load_obj_families() -> pd.DataFrame:
     Walk OBJ_ROOT and build a table:
     - asset_family (folder name)
     - variant_name (e.g., isBayCedarA1_bonsaiA)
-    - obj_path
-    - mtl_path
-    - hier_path
     - polycount
     - material_count
     - hierarchy_depth
     - folder_size_mb
+    - asset_path
     """
     rows = []
 
@@ -143,11 +141,11 @@ def load_obj_families() -> pd.DataFrame:
                 {
                     "asset_family": asset_family,
                     "variant_name": variant_name,
-                    "asset_path": obj_file.parent.as_posix(),
                     "polycount": polycount,
                     "material_count": material_count,
                     "hierarchy_depth": hierarchy_depth,
                     "folder_size_mb": folder_size_mb,
+                    "asset_path": obj_file.parent.as_posix(),
                 }
             )
 

@@ -124,7 +124,13 @@ def load_obj_families() -> pd.DataFrame:
             continue
 
         asset_family = family_dir.name
-        folder_size_mb = compute_folder_size_mb(family_dir)
+        obj_size = obj_file.stat().st_size / (1024 * 1024)
+        mtl_size = mtl_file.stat().st_size / (1024 * 1024) if mtl_file.exists() else 0
+        hier_size = hier_file.stat().st_size / (1024 * 1024) if hier_file.exists() else 0
+
+        variant_size_mb = obj_size + mtl_size + hier_size
+
+        "folder_size_mb": round(variant_size_mb, 4)
 
         # For each .obj file in this family folder
         for obj_file in family_dir.glob("*.obj"):
@@ -164,7 +170,7 @@ def build_tree_structure() -> pd.DataFrame:
     nodes = []
     node_id = 0
 
-    def add_node(path: Path, parent_id: int | None):
+    def add_node(path: Path, parent_id: int | None, depth: int):
         nonlocal node_id
         current_id = node_id
         node_id += 1
@@ -174,7 +180,7 @@ def build_tree_structure() -> pd.DataFrame:
         base_label = str(rel) if rel != Path(".") else "moana"
 
         # indentation
-        label = ("" * depth) + base_label
+        label = ("— " * depth) + base_label
 
         # type + size logic
         if path.is_dir():
@@ -198,10 +204,11 @@ def build_tree_structure() -> pd.DataFrame:
         # recursion for directories
         if path.is_dir():
             for child in path.iterdir():
-                add_node(child, current_id)
+                add_node(child, current_id, depth + 1)
 
+    # pass depth=0
     if MOANA_ROOT.exists():
-        add_node(MOANA_ROOT, None)
+        add_node(MOANA_ROOT, None, 0)
 
     return pd.DataFrame(nodes)
 
@@ -259,6 +266,15 @@ def prepare_treemap_data(assets_df: pd.DataFrame) -> dict:
 
     return {"labels": labels, "parents": parents, "values": values}
 
+def compute_hierarchy_depth(hier_file: Path):
+    if not hier_file.exists():
+        return 0
+    max_depth = 0
+    with open(hier_file, "r") as f:
+        for line in f:
+            depth = len(line) - len(line.lstrip())
+            max_depth = max(max_depth, depth)
+    return max_depth
 
 def load_all():
     metadata = load_metadata_json()

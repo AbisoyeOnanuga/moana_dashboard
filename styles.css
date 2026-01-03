@@ -1,0 +1,37 @@
+/* Global font */
+body {
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Light theme */
+[data-taipy-theme="light"] {
+    --color-primary: #2a7fba;      /* ocean blue */
+    --color-secondary: #f4c95d;    /* warm sand */
+    --color-background: #ffffff;
+    --color-text: #222222;
+}
+
+/* Dark theme */
+[data-taipy-theme="dark"] {
+    --color-primary: #4aa3df;
+    --color-secondary: #e0b44c;
+    --color-bg: #1a1a1a;
+    --color-text: #eeeeee;
+}
+
+/* Apply theme colors */
+h1, h2, h3 {
+    color: var(--color-primary);
+}
+
+.taipy-card {
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-secondary);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.taipy-table {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}

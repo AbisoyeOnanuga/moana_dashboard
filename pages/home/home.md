@@ -1,7 +1,7 @@
 # Moana Project Overview
 
 <|toggle|theme|>
-<|{navbar}|raw|>
+<|navbar|>
 
 ## Key Metrics
 

@@ -169,9 +169,14 @@ def build_tree_structure() -> pd.DataFrame:
         current_id = node_id
         node_id += 1
 
+        # relative label logic
         rel = path.relative_to(MOANA_ROOT)
-        label = str(rel) if rel != Path(".") else "moana"
+        base_label = str(rel) if rel != Path(".") else "moana"
 
+        # indentation
+        label = ("" * depth) + base_label
+
+        # type + size logic
         if path.is_dir():
             size_mb = compute_folder_size_mb(path)
             node_type = "folder"
@@ -186,9 +191,11 @@ def build_tree_structure() -> pd.DataFrame:
                 "label": label,
                 "type": node_type,
                 "size_mb": size_mb,
+                "depth": depth,
             }
         )
 
+        # recursion for directories
         if path.is_dir():
             for child in path.iterdir():
                 add_node(child, current_id)

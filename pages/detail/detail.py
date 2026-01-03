@@ -1,7 +1,5 @@
 from taipy.gui import Markdown, State
-from data.data import load_all
-
-metadata, assets, tree_df, kpis, treemap_data = load_all()
+from data.cache import metadata, assets, tree_df, kpis, treemap_data
 
 # Build the list of variants for the selector
 if assets is not None and not assets.empty:
@@ -20,7 +18,7 @@ def get_asset_detail(variant_name: str):
             "material_count": 0,
             "hierarchy_depth": 0,
             "folder_size_mb": 0.0,
-            "obj_path": "",
+            "asset_path": "",
         }
 
     row = assets.loc[assets["variant_name"] == variant_name]
@@ -31,7 +29,7 @@ def get_asset_detail(variant_name: str):
             "material_count": 0,
             "hierarchy_depth": 0,
             "folder_size_mb": 0.0,
-            "obj_path": "",
+            "asset_path": "",
         }
 
     row = row.iloc[0]
@@ -41,7 +39,7 @@ def get_asset_detail(variant_name: str):
         "material_count": int(row["material_count"]),
         "hierarchy_depth": int(row["hierarchy_depth"]),
         "folder_size_mb": float(row["folder_size_mb"]),
-        "obj_path": row["obj_path"],
+        "asset_path": row["asset_path"],
     }
 
 detail_state = get_asset_detail(selected_variant)

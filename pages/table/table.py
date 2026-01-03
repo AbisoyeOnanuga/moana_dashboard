@@ -1,7 +1,5 @@
 from taipy.gui import Markdown, State
-from data.data import load_all
-
-metadata, assets, tree_df, kpis, treemap_data = load_all()
+from data.cache import metadata, assets, tree_df, kpis, treemap_data
 
 # Table data
 table_data = assets.copy() if assets is not None else None

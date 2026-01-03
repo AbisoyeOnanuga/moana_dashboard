@@ -1,8 +1,6 @@
 from taipy.gui import Markdown
-from data.data import load_all
-
-# Load once at import time (fine for dashboard)
-metadata, assets, tree_df, kpis, treemap_data = load_all()
+from data.cache import metadata, assets, tree_df, kpis, treemap_data
+from pages.navbar import navbar
 
 total_assets = kpis["total_assets"]
 total_variants = kpis["total_variants"]

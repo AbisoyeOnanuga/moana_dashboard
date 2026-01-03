@@ -1,7 +1,5 @@
 from taipy.gui import Markdown
-from data.data import load_all
-
-metadata, assets, tree_df, kpis, treemap_data = load_all()
+from data.cache import metadata, assets, tree_df, kpis, treemap_data
 
 # Treemap data
 labels = treemap_data["labels"]

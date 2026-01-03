@@ -143,9 +143,7 @@ def load_obj_families() -> pd.DataFrame:
                 {
                     "asset_family": asset_family,
                     "variant_name": variant_name,
-                    "obj_path": obj_file.as_posix(),
-                    "mtl_path": mtl_file.as_posix() if mtl_file.exists() else "",
-                    "hier_path": hier_file.as_posix() if hier_file.exists() else "",
+                    "asset_path": obj_file.parent.as_posix(),
                     "polycount": polycount,
                     "material_count": material_count,
                     "hierarchy_depth": hierarchy_depth,

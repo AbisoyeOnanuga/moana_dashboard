@@ -5,8 +5,9 @@ from pathlib import Path
 import pandas as pd
 
 # Adjust this to your project structure
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-MOANA_ROOT = PROJECT_ROOT / "assets" / "moana"
+MOANA_ROOT = Path("D:/Downloads/island")
+
+# Subfolders inside the Moana dataset
 JSON_ROOT = MOANA_ROOT / "json"
 OBJ_ROOT = MOANA_ROOT / "obj"
 
@@ -26,7 +27,7 @@ def load_metadata_json() -> pd.DataFrame:
             with file.open("r", encoding="utf-8") as f:
                 data = json.load(f)
                 # Optionally add filename as an id/link
-                data["__json_file"] = str(file.relative_to(PROJECT_ROOT))
+                data["__json_file"] = file.as_posix()
                 rows.append(data)
         except Exception as e:
             print(f"[metadata] Error reading {file}: {e}")
@@ -142,9 +143,9 @@ def load_obj_families() -> pd.DataFrame:
                 {
                     "asset_family": asset_family,
                     "variant_name": variant_name,
-                    "obj_path": str(obj_file.relative_to(PROJECT_ROOT)),
-                    "mtl_path": str(mtl_file.relative_to(PROJECT_ROOT)) if mtl_file.exists() else "",
-                    "hier_path": str(hier_file.relative_to(PROJECT_ROOT)) if hier_file.exists() else "",
+                    "obj_path": obj_file.as_posix(),
+                    "mtl_path": mtl_file.as_posix() if mtl_file.exists() else "",
+                    "hier_path": hier_file.as_posix() if hier_file.exists() else "",
                     "polycount": polycount,
                     "material_count": material_count,
                     "hierarchy_depth": hierarchy_depth,

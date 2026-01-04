@@ -6,6 +6,9 @@ from pages.tree.tree import tree_md
 from pages.visualization.visualization import visualization_md
 from pages.detail.detail import detail_md
 
+navbar = """
+<|menu|lov=/;Table;Tree;Visualization;Detail|>
+"""
 stylekit = {
     "color_primary": "rgb(60, 120, 200)",
     "color_secondary": "rgb(200, 160, 100)",

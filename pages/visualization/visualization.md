@@ -1,5 +1,7 @@
 # Asset Visualizations
 
+<|{navbar}|raw|>
+
 ## Folder Size Treemap (by Asset Family)
 
 <|chart|type=treemap|labels={labels}|parents={parents}|values={values}|>

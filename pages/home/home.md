@@ -1,5 +1,7 @@
 # Moana Project Overview
 
+<|{navbar}|raw|>
+
 ## Key Metrics
 
 <|layout|columns=1 1 1 1 1|

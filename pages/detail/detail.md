@@ -1,5 +1,7 @@
 # Asset Variant Detail
 
+<|{navbar}|raw|>
+
 ## Select Variant
 
 <|{selected_variant}|selector|lov={list(assets["variant_name"])}|on_change=on_change_variant|label=Variant|>

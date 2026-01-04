@@ -4,7 +4,7 @@
 
 ## Triangle Count Distribution (per Variant)
 
-<|chart|type=histogram|data={hist_tri_df}|x=triangles|text=hover|nbins=40|title=Triangle Count Distribution|x_title="Triangle Count"|y_title="Number of Variants"|>
+<|chart|type=histogram|data={hist_tri_df}|x=triangles|text=hover|nbins=40|title=Triangle Count Distribution|x_title="Triangle Count"|y_title="Number of Variants"|hoverinfo=text|>
 
 ---
 

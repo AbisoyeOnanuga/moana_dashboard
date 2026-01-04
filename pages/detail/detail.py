@@ -15,6 +15,7 @@ def get_asset_detail(variant_name: str):
         return {
             "asset_family": "",
             "polycount": 0,
+            "triangles": 0,
             "material_count": 0,
             "hierarchy_depth": 0,
             "folder_size_mb": 0.0,
@@ -26,6 +27,7 @@ def get_asset_detail(variant_name: str):
         return {
             "asset_family": "",
             "polycount": 0,
+            "triangles": 0,
             "material_count": 0,
             "hierarchy_depth": 0,
             "folder_size_mb": 0.0,
@@ -35,10 +37,11 @@ def get_asset_detail(variant_name: str):
     row = row.iloc[0]
     return {
         "asset_family": row["asset_family"],
-        "polycount": int(row["polycount"]),
-        "material_count": int(row["material_count"]),
-        "hierarchy_depth": int(row["hierarchy_depth"]),
-        "folder_size_mb": float(row["folder_size_mb"]),
+        "polycount": row["polycount_fmt"],
+        "triangles": row["triangles_fmt"],
+        "material_count": row["material_count_fmt"],
+        "hierarchy_depth": row["hierarchy_depth_fmt"],
+        "folder_size_mb": row["folder_size_fmt"],
         "asset_path": row["asset_path"],
     }
 

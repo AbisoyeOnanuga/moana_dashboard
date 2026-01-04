@@ -3,7 +3,16 @@ from data.cache import metadata, assets, tree_df, kpis, treemap_data
 
 # Table data
 table_data = assets.copy() if assets is not None else None
-columns = list(table_data.columns) if table_data is not None else []
+columns = [
+    "variant_name",
+    "asset_family",
+    "polycount_fmt",
+    "triangles_fmt",
+    "material_count_fmt",
+    "hierarchy_depth_fmt",
+    "folder_size_fmt",
+    "asset_path",
+] if table_data is not None else []
 
 # Selected asset + variant
 selected_family = table_data.iloc[0]["asset_family"] if table_data is not None and not table_data.empty else ""

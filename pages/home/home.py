@@ -1,5 +1,5 @@
 from taipy.gui import Markdown
-from ...data.data import load_all
+from data.data import load_all
 
 # Load once at import time (fine for dashboard)
 metadata, assets, tree_df, kpis, treemap_data = load_all()

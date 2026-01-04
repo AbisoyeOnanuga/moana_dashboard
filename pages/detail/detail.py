@@ -1,11 +1,14 @@
 from taipy.gui import Markdown, State
-from ...data.data import load_all
+from data.data import load_all
 
 metadata, assets, tree_df, kpis, treemap_data = load_all()
 
+# Build the list of variants for the selector
 if assets is not None and not assets.empty:
-    selected_variant = assets.iloc[0]["variant_name"]
+    variants = list(assets["variant_name"])
+    selected_variant = variants[0]
 else:
+    variants = []
     selected_variant = ""
 
 # Derived detail fields

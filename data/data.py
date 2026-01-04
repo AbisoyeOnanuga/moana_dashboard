@@ -11,6 +11,13 @@ MOANA_ROOT = Path("D:/Downloads/island")
 JSON_ROOT = MOANA_ROOT / "json"
 OBJ_ROOT = MOANA_ROOT / "obj"
 
+def format_number(n: int) -> str:
+    return f"{n:,}"
+
+def format_size_mb(size: float) -> str:
+    if size >= 1024:
+        return f"{size/1024:.2f} GB"
+    return f"{size:.2f} MB"
 
 def load_metadata_json() -> pd.DataFrame:
     """
@@ -37,6 +44,30 @@ def load_metadata_json() -> pd.DataFrame:
 
     return pd.DataFrame(rows)
 
+def compute_hierarchy_depth(hier_file: Path) -> int:
+    if not hier_file.exists():
+        return 0
+
+    max_depth = 0
+    with open(hier_file, "r") as f:
+        for line in f:
+            # Count indentation (spaces or tabs)
+            indent = len(line) - len(line.lstrip())
+            depth = indent // 2  # adjust if needed
+            max_depth = max(max_depth, depth)
+
+    return max_depth
+
+def count_materials(mtl_file: Path) -> int:
+    if not mtl_file.exists():
+        return 0
+
+    count = 0
+    with open(mtl_file, "r") as f:
+        for line in f:
+            if line.startswith("newmtl"):
+                count += 1
+    return count
 
 def compute_polycount_from_obj(obj_path: Path) -> int:
     """
@@ -103,7 +134,7 @@ def compute_folder_size_mb(path: Path) -> float:
     return round(total / (1024 * 1024), 2)
 
 
-def load_obj_families() -> pd.DataFrame:
+def load_obj_families():
     """
     Walk OBJ_ROOT and build a table:
     - asset_family (folder name)
@@ -119,47 +150,60 @@ def load_obj_families() -> pd.DataFrame:
     if not OBJ_ROOT.exists():
         return pd.DataFrame()
 
+    # Walk each asset family folder
     for family_dir in OBJ_ROOT.iterdir():
         if not family_dir.is_dir():
             continue
-
+        
         asset_family = family_dir.name
-        obj_size = obj_file.stat().st_size / (1024 * 1024)
-        mtl_size = mtl_file.stat().st_size / (1024 * 1024) if mtl_file.exists() else 0
-        hier_size = hier_file.stat().st_size / (1024 * 1024) if hier_file.exists() else 0
 
-        variant_size_mb = obj_size + mtl_size + hier_size
-
-        "folder_size_mb": round(variant_size_mb, 4)
-
-        # For each .obj file in this family folder
+        # Walk each OBJ inside the family folder
         for obj_file in family_dir.glob("*.obj"):
-            variant_name = obj_file.stem  # filename without .obj
+            name = obj_file.stem  # variant name
 
             mtl_file = obj_file.with_suffix(".mtl")
             hier_file = obj_file.with_suffix(".hier")
 
+            # Polycount (already correct in your version)
             polycount = compute_polycount_from_obj(obj_file)
-            material_count = compute_material_count_from_mtl(mtl_file) if mtl_file.exists() else 0
-            hierarchy_depth = compute_hierarchy_depth_from_hier(hier_file) if hier_file.exists() else 0
 
-            rows.append(
-                {
-                    "asset_family": asset_family,
-                    "variant_name": variant_name,
-                    "polycount": polycount,
-                    "material_count": material_count,
-                    "hierarchy_depth": hierarchy_depth,
-                    "folder_size_mb": folder_size_mb,
-                    "asset_path": obj_file.parent.as_posix(),
-                }
-            )
+            # Triangle count (artist-friendly)
+            triangles = polycount * 2
+
+            # Material count
+            material_count = count_materials(mtl_file)
+
+            # Hierarchy depth
+            hierarchy_depth = compute_hierarchy_depth(hier_file)
+
+            # Variant-specific file size
+            obj_size = obj_file.stat().st_size / (1024 * 1024)
+            mtl_size = mtl_file.stat().st_size / (1024 * 1024) if mtl_file.exists() else 0
+            hier_size = hier_file.stat().st_size / (1024 * 1024) if hier_file.exists() else 0
+            variant_size_mb = obj_size + mtl_size + hier_size
+
+            rows.append({
+                "variant_name": name,
+                "asset_family": asset_family,
+                "polycount": polycount,
+                "triangles": triangles,
+                "material_count": material_count,
+                "hierarchy_depth": hierarchy_depth,
+                "folder_size_mb": variant_size_mb,
+                "asset_path": obj_file.as_posix(),
+
+                # Formatted versions for UI
+                "polycount_fmt": format_number(polycount),
+                "triangles_fmt": format_number(triangles),
+                "material_count_fmt": format_number(material_count),
+                "hierarchy_depth_fmt": format_number(hierarchy_depth),
+                "folder_size_fmt": format_size_mb(variant_size_mb),
+            })
 
     if not rows:
         return pd.DataFrame()
 
     return pd.DataFrame(rows)
-
 
 def build_tree_structure() -> pd.DataFrame:
     """
@@ -266,15 +310,6 @@ def prepare_treemap_data(assets_df: pd.DataFrame) -> dict:
 
     return {"labels": labels, "parents": parents, "values": values}
 
-def compute_hierarchy_depth(hier_file: Path):
-    if not hier_file.exists():
-        return 0
-    max_depth = 0
-    with open(hier_file, "r") as f:
-        for line in f:
-            depth = len(line) - len(line.lstrip())
-            max_depth = max(max_depth, depth)
-    return max_depth
 
 def load_all():
     metadata = load_metadata_json()

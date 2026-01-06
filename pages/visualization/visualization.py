@@ -1,92 +1,36 @@
 from taipy.gui import Markdown
-import pandas as pd
 
-from data.cache import assets, treemap_data
+from data.cache import (
+    assets,
+    treemap_data,
+    treemap_df,
+    hist_tri_df,
+    hist_mat_df,
+    hist_poly_df,
+    scatter_poly_df,
+    bar_df,
+)
 from pages.navbar import navbar
 
 
 # --------------------------------------------------
-# FILTER STATE + OPTIONS
+# FILTER STATE + OPTIONS (selector currently disabled)
 # --------------------------------------------------
 
-if assets is not None and not assets.empty:
-    family_options = ["All"] + sorted(assets["asset_family"].astype(str).unique())
-else:
-    family_options = ["All"]
+# if assets is not None and not assets.empty:
+#     family_options = ["All"] + sorted(assets["asset_family"].astype(str).unique())
+# else:
+#     family_options = ["All"]
+#
+# selected_family = "All"
+#
+# def on_family_change(state):
+#     # Rebuild charts based on selected family
+#     state.viz_state = compute_viz_state(state.selected_family)
+#
+# # This will hold all data/properties for the charts
+# viz_state = {}
 
-selected_family = "All"
-
-# This will hold all data/properties for the charts
-viz_state = {}
-
-
-# --------------------------------------------------
-# TREEMAP DATA (GLOBAL, NOT FILTERED)
-# --------------------------------------------------
-
-labels = treemap_data["labels"]
-parents = treemap_data["parents"]
-values = treemap_data["values"]
-
-treemap_df = pd.DataFrame({
-    "labels": labels,
-    "parents": parents,
-    "values": values,
-})
-
-
-# --------------------------------------------------
-# BASE DATAFRAMES FOR CHARTS
-# --------------------------------------------------
-
-hist_tri_df = pd.DataFrame({
-    "variant": assets["variant_name"],
-    "value": assets["triangles"],
-    "hover": assets["variant_name"] + " — " + assets["triangles_fmt"] + " tris",
-    "family": assets["asset_family"].astype(str),
-})
-
-hist_mat_df = pd.DataFrame({
-    "variant": assets["variant_name"],
-    "value": assets["material_count"],
-    "hover": assets["variant_name"] + " — " + assets["material_count_fmt"] + " mats",
-    "family": assets["asset_family"].astype(str),
-})
-
-hist_poly_df = pd.DataFrame({
-    "variant": assets["variant_name"],
-    "value": assets["polycount"],
-    "hover": assets["variant_name"] + " — " + assets["polycount_fmt"] + " polys",
-    "family": assets["asset_family"].astype(str),
-})
-
-scatter_poly_df = pd.DataFrame({
-    "polycount": assets["polycount"],
-    "materials": assets["material_count"],
-    "hover": assets["variant_name"]
-             + " — " + assets["polycount_fmt"] + " polys"
-             + " — " + assets["material_count_fmt"] + " mats",
-    "family": assets["asset_family"].astype(str),
-})
-
-# --------------------------------------------------
-# BAR CHART (heaviest families)
-# --------------------------------------------------
-
-heaviest = (
-    assets.groupby("asset_family")
-    .agg({"folder_size_mb": "max"})
-    .sort_values("folder_size_mb", ascending=False)
-    .head(10)
-    .reset_index()
-)
-
-bar_df = pd.DataFrame({
-    "family": heaviest["asset_family"],
-    "size": heaviest["folder_size_mb"],
-    "hover": heaviest["asset_family"] + " — " +
-             heaviest["folder_size_mb"].round(2).astype(str) + " MB"
-})
 
 # --------------------------------------------------
 # LAYOUT CONFIGS
@@ -97,7 +41,7 @@ layout_log_x = {"xaxis": {"type": "log"}}
 
 
 # --------------------------------------------------
-# MULTI-TRACE HELPERS
+# MULTI-TRACE HELPERS (kept for future selector reactivation)
 # --------------------------------------------------
 
 def build_datasets(df, x_col, y_col, text_col):
@@ -159,6 +103,7 @@ family_colors = [
 
 # --------------------------------------------------
 # DERIVED STATE: DATA + PROPERTIES PER CHART
+# (we compute only the "All" case once, no selector)
 # --------------------------------------------------
 
 def compute_viz_state(selected_family_value: str):
@@ -216,16 +161,20 @@ def compute_viz_state(selected_family_value: str):
     return state
 
 
-# Initialize viz_state once at startup
-viz_state = compute_viz_state(selected_family)
+# Compute the "All families" multi-trace data once, at import
+_viz_all = compute_viz_state("All")
 
+tri_data = _viz_all["tri_data"]
+tri_props = _viz_all["tri_props"]
 
-# --------------------------------------------------
-# SELECTOR HANDLER (DETAIL.PY PATTERN)
-# --------------------------------------------------
+mat_data = _viz_all["mat_data"]
+mat_props = _viz_all["mat_props"]
 
-def on_family_change(state):
-    state.viz_state = compute_viz_state(state.selected_family)
+poly_data = _viz_all["poly_data"]
+poly_props = _viz_all["poly_props"]
+
+scatter_data = _viz_all["scatter_data"]
+scatter_props = _viz_all["scatter_props"]
 
 
 # --------------------------------------------------

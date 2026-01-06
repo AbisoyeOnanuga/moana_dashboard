@@ -3,7 +3,7 @@ from taipy.gui import Gui
 from pages.home.home import home_md
 from pages.table.table import table_md
 from pages.tree.tree import tree_md
-from pages.visualization import visualization
+from pages.visualization.visualization import visualization_md
 from pages.detail.detail import detail_md
 
 stylekit = {
@@ -16,7 +16,7 @@ pages = {
     "/": home_md,
     "Table": table_md,
     "Tree": tree_md,
-    "Visualization": visualization.visualization_md,
+    "Visualization": visualization_md,
     "Detail": detail_md,
 }
 

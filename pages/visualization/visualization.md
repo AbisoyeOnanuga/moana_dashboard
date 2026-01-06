@@ -2,33 +2,37 @@
 
 ---
 
+<|{selected_family}|selector|lov={family_options}|dropdown=True|on_change=on_family_change|label=Asset Family Filter|>
+
+---
+
 ## Triangle Count Distribution (per Variant)
 
-<|chart|type=histogram|data={hist_tri_df}|x=triangles|text=hover|nbins=40|title=Triangle Count Distribution|x_title="Triangle Count"|y_title="Number of Variants"|hoverinfo=text|>
+<|{viz_state.tri_data}|chart|type=bar|properties={viz_state.tri_props}|title="Triangles per variant"|layout={layout_log_y}|>
 
 ---
 
 ## Folder Size Treemap (by Asset Family)
 
-<|chart|type=treemap|data={treemap_df}|labels=labels|parents=parents|values=values|title=Folder Size by Asset Family|>
+<|{treemap_df}|chart|type=treemap|labels=labels|parents=parents|values=values|title="Moana asset hierarchy"|>
 
 ---
 
 ## Material Count Distribution
 
-<|chart|type=histogram|data={hist_mat_df}|x=materials|    text=hover|nbins=20|title=Material Count Distribution|x_title="Material Count"|y_title="Number of Variants"|hoverinfo=text|>
+<|{viz_state.mat_data}|chart|type=bar|properties={viz_state.mat_props}|title="Materials per variant"|>
 
 ---
 
 ## Polycount Distribution
 
-<|chart|type=histogram|data={hist_poly_df}|x=polycount|    text=hover|nbins=40|title=Polycount Distribution|x_title="Polycount"|y_title="Number of Variants"|hoverinfo=text|>
+<|{viz_state.poly_data}|chart|type=bar|properties={viz_state.poly_props}|title="Polycount per variant"|layout={layout_log_y}|>
 
 ---
 
 ## Polycount vs Material Count (per Variant)
 
-<|chart|type=scatter|data={scatter_poly_df}|x=polycount|y=materials|text=hover|mode=markers|title=Polycount vs Material Count|x_title="Polycount"|y_title="Material Count"|>
+<|{viz_state.scatter_data}|chart|type=scatter|mode=markers|properties={viz_state.scatter_props}|title="Polycount vs materials"|layout={layout_log_x}|>
 
 ---
 

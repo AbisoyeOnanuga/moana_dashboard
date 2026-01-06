@@ -15,16 +15,12 @@
 <|{total_variants}|text|class_name=h2|>
 |>
 <|card|
-**Characters**  
-<|{total_characters}|text|class_name=h2|>
-|>
-<|card|
 **Props**  
 <|{total_props}|text|class_name=h2|>
 |>
 <|card|
-**Environments**  
-<|{total_environments}|text|class_name=h2|>
+**Cameras**  
+<|{total_cameras}|text|class_name=h2|>
 |>
 |>
 

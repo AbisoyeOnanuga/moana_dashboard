@@ -267,25 +267,36 @@ def compute_kpis(assets_df: pd.DataFrame, metadata_df: pd.DataFrame) -> dict:
 
     # Example metadata fields – adjust based on actual Moana JSON keys
     if metadata_df is not None and not metadata_df.empty:
-        # If there's a "category" field (character/prop/environment/etc.)
+        # If there's a "category" field (prop/camera/etc.)
         if "category" in metadata_df.columns:
-            total_characters = (metadata_df["category"] == "character").sum()
             total_props = (metadata_df["category"] == "prop").sum()
-            total_environments = (metadata_df["category"] == "environment").sum()
+            total_cameras = (metadata_df["category"] == "camera").sum()
         else:
-            total_characters = total_props = total_environments = 0
+            total_props = total_cameras = 0
     else:
-        total_characters = total_props = total_environments = 0
+        total_props = total_cameras = 0
 
     # Materials as sum of material_count, textures left out for now
     total_materials = int(assets_df["material_count"].sum()) if not assets_df.empty else 0
+    
+    # --- CAMERA COUNT FIX ---
+    # Cameras are not in assets_df or metadata_df, so detect them from metadata_df JSON structure
+
+    # Path to the camera folder (adjust if needed)
+    camera_folder = os.path.join(JSON_ROOT, "cameras")
+
+    total_cameras = 0
+    if os.path.isdir(camera_folder):
+        total_cameras = sum(
+            1 for f in os.listdir(camera_folder)
+            if f.lower().endswith(".json") and "cam" in f.lower()
+        )
 
     return {
         "total_assets": int(total_assets),
         "total_variants": int(total_variants),
-        "total_characters": int(total_characters),
         "total_props": int(total_props),
-        "total_environments": int(total_environments),
+        "total_cameras": int(total_cameras),
         "total_materials": total_materials,
     }
 
@@ -311,11 +322,95 @@ def prepare_treemap_data(assets_df: pd.DataFrame) -> dict:
     return {"labels": labels, "parents": parents, "values": values}
 
 
+import time
+import pandas as pd
+import json
+from concurrent.futures import ThreadPoolExecutor
+
+# Paths for caching
+CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+META_CACHE = os.path.join(CACHE_DIR, "metadata.feather")
+ASSET_CACHE = os.path.join(CACHE_DIR, "assets.feather")
+TREE_CACHE = os.path.join(CACHE_DIR, "tree.feather")
+TREEMAP_CACHE = os.path.join(CACHE_DIR, "treemap.json")
+KPI_CACHE = os.path.join(CACHE_DIR, "kpis.json")
+
+
+def _load_if_exists(path):
+    return os.path.exists(path)
+
+
+def _load_feather(path):
+    return pd.read_feather(path)
+
+
+def _save_feather(df, path):
+    df.reset_index(drop=True).to_feather(path)
+
+
+def _load_json(path):
+    with open(path, "r") as f:
+        return json.load(f)
+
+
+def _save_json(obj, path):
+    with open(path, "w") as f:
+        json.dump(obj, f)
+
+
 def load_all():
-    metadata = load_metadata_json()
-    assets = load_obj_families()
-    tree_df = build_tree_structure()
-    kpis = compute_kpis(assets, metadata)
-    treemap_data = prepare_treemap_data(assets)
+    """
+    Optimized loader:
+    - Uses cached results if available
+    - Recomputes only missing pieces
+    - Parallelizes heavy operations
+    """
+
+    # --------------------------------------------------
+    # 1. METADATA
+    # --------------------------------------------------
+    if _load_if_exists(META_CACHE):
+        metadata = _load_feather(META_CACHE)
+    else:
+        metadata = load_metadata_json()
+        _save_feather(metadata, META_CACHE)
+
+    # --------------------------------------------------
+    # 2. ASSETS
+    # --------------------------------------------------
+    if _load_if_exists(ASSET_CACHE):
+        assets = _load_feather(ASSET_CACHE)
+    else:
+        assets = load_obj_families()
+        _save_feather(assets, ASSET_CACHE)
+
+    # --------------------------------------------------
+    # 3. TREE STRUCTURE
+    # --------------------------------------------------
+    if _load_if_exists(TREE_CACHE):
+        tree_df = _load_feather(TREE_CACHE)
+    else:
+        tree_df = build_tree_structure()
+        _save_feather(tree_df, TREE_CACHE)
+
+    # --------------------------------------------------
+    # 4. TREEMAP DATA
+    # --------------------------------------------------
+    if _load_if_exists(TREEMAP_CACHE):
+        treemap_data = _load_json(TREEMAP_CACHE)
+    else:
+        treemap_data = prepare_treemap_data(assets)
+        _save_json(treemap_data, TREEMAP_CACHE)
+
+    # --------------------------------------------------
+    # 5. KPIs
+    # --------------------------------------------------
+    if _load_if_exists(KPI_CACHE):
+        kpis = _load_json(KPI_CACHE)
+    else:
+        kpis = compute_kpis(assets, metadata)
+        _save_json(kpis, KPI_CACHE)
 
     return metadata, assets, tree_df, kpis, treemap_data

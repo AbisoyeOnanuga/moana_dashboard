@@ -1,11 +1,13 @@
 import os
 import json
 from pathlib import Path
-
+import datetime
 import pandas as pd
 
 # Adjust this to your project structure
 MOANA_ROOT = Path("D:/Downloads/island")
+EXPORTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "exports")
+os.makedirs(EXPORTS_DIR, exist_ok=True)
 
 # Subfolders inside the Moana dataset
 JSON_ROOT = MOANA_ROOT / "json"
@@ -442,6 +444,122 @@ def clear_cache():
                 # Non-fatal: if something can't be removed, we just leave it.
                 pass
 
+def _write_export_json(obj, filename):
+    """Write a JSON file into the exports directory."""
+    path = os.path.join(EXPORTS_DIR, filename)
+    with open(path, "w") as f:
+        json.dump(obj, f, indent=2)
+
+def export_maya_metadata(assets_df, metadata_df):
+    """
+    Create a unified metadata export for Maya and PBRT/Maya pipeline tools.
+    Produces:
+        - exports/maya_metadata.json (consolidated)
+        - exports/assets.json
+        - exports/metadata.json
+        - exports/elements.json
+        - exports/primitives.json
+        - exports/cameras.json
+        - exports/lights.json
+    """
+
+    # ------------------------------------------------------------
+    # 1. ASSETS (from OBJ/MTL/HIER)
+    # ------------------------------------------------------------
+    assets = assets_df.to_dict(orient="records") if assets_df is not None else []
+
+    _write_export_json(assets, "assets.json")
+
+    # ------------------------------------------------------------
+    # 2. METADATA (from JSON_ROOT)
+    # ------------------------------------------------------------
+    metadata = metadata_df.to_dict(orient="records") if metadata_df is not None else []
+    _write_export_json(metadata, "metadata.json")
+
+    # ------------------------------------------------------------
+    # 3. PBRT ELEMENT JSON (json/<element>/<element>.json)
+    # ------------------------------------------------------------
+    elements = {}
+    if JSON_ROOT.exists():
+        for element_dir in JSON_ROOT.iterdir():
+            if element_dir.is_dir():
+                element_json = element_dir / f"{element_dir.name}.json"
+                if element_json.exists():
+                    try:
+                        with open(element_json, "r") as f:
+                            elements[element_dir.name] = json.load(f)
+                    except Exception as e:
+                        print(f"[export] Error reading element JSON {element_json}: {e}")
+
+    _write_export_json(elements, "elements.json")
+
+    # ------------------------------------------------------------
+    # 4. PBRT PRIMITIVE JSON (nested inside element JSON)
+    # ------------------------------------------------------------
+    primitives = {}
+    for elem_name, elem_dict in elements.items():
+        if "instancedPrimitiveJsonFiles" in elem_dict:
+            for prim_name, prim_info in elem_dict["instancedPrimitiveJsonFiles"].items():
+                prim_file = prim_info.get("jsonFile")
+                if prim_file:
+                    try:
+                        with open(os.path.join(JSON_ROOT, prim_file), "r") as f:
+                            primitives[f"{elem_name}/{prim_name}"] = json.load(f)
+                    except Exception:
+                        pass
+
+    _write_export_json(primitives, "primitives.json")
+
+    # ------------------------------------------------------------
+    # 5. CAMERAS
+    # ------------------------------------------------------------
+    cameras = {}
+    cam_dir = JSON_ROOT / "cameras"
+    if cam_dir.exists():
+        for cam_file in cam_dir.glob("*.json"):
+            try:
+                with open(cam_file, "r") as f:
+                    cameras[cam_file.stem] = json.load(f)
+            except Exception:
+                pass
+
+    _write_export_json(cameras, "cameras.json")
+
+    # ------------------------------------------------------------
+    # 6. LIGHTS
+    # ------------------------------------------------------------
+    lights = {}
+    lights_file = JSON_ROOT / "lights" / "lights.json"
+    if lights_file.exists():
+        try:
+            with open(lights_file, "r") as f:
+                lights = json.load(f)
+        except Exception:
+            pass
+
+    _write_export_json(lights, "lights.json")
+
+    # ------------------------------------------------------------
+    # 7. CONSOLIDATED EXPORT
+    # ------------------------------------------------------------
+    consolidated = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "paths": {
+            "MOANA_ROOT": MOANA_ROOT.as_posix(),
+            "JSON_ROOT": JSON_ROOT.as_posix(),
+            "OBJ_ROOT": OBJ_ROOT.as_posix(),
+        },
+        "assets": assets,
+        "metadata": metadata,
+        "elements": elements,
+        "primitives": primitives,
+        "cameras": cameras,
+        "lights": lights,
+    }
+
+    _write_export_json(consolidated, "maya_metadata.json")
+
+    print("[export] Maya metadata export complete.")
 
 def load_all(force: bool = False):
     """
@@ -538,5 +656,9 @@ def load_all(force: bool = False):
     # 6. SAVE MANIFEST (for future change detection)
     # --------------------------------------------------
     _save_manifest(current_manifest)
+
+    # 7. EXPORT MAYA METADATA (only when rebuild happens)
+    if force or dataset_changed:
+        export_maya_metadata(assets, metadata)
 
     return metadata, assets, tree_df, kpis, treemap_data

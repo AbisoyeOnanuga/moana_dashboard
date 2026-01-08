@@ -321,10 +321,9 @@ def prepare_treemap_data(assets_df: pd.DataFrame) -> dict:
 
     return {"labels": labels, "parents": parents, "values": values}
 
-
 import time
-import pandas as pd
 import json
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 
 # Paths for caching
@@ -336,10 +335,7 @@ ASSET_CACHE = os.path.join(CACHE_DIR, "assets.feather")
 TREE_CACHE = os.path.join(CACHE_DIR, "tree.feather")
 TREEMAP_CACHE = os.path.join(CACHE_DIR, "treemap.json")
 KPI_CACHE = os.path.join(CACHE_DIR, "kpis.json")
-
-
-def _load_if_exists(path):
-    return os.path.exists(path)
+MANIFEST_CACHE = os.path.join(CACHE_DIR, "manifest.json")  # for change detection
 
 
 def _load_feather(path):
@@ -360,45 +356,136 @@ def _save_json(obj, path):
         json.dump(obj, f)
 
 
-def load_all():
+def _compute_dir_hash(path: Path) -> str:
     """
-    Optimized loader:
-    - Uses cached results if available
-    - Recomputes only missing pieces
-    - Parallelizes heavy operations
+    Compute a simple hash based on file paths + mtimes under a directory.
+    This is coarse but safe: if anything changes, the hash changes.
     """
+    if not path.exists():
+        return ""
+
+    hasher = hashlib.sha1()
+    for p in sorted(path.rglob("*")):
+        if p.is_file():
+            rel = p.relative_to(path).as_posix().encode("utf-8")
+            mtime = str(p.stat().st_mtime).encode("utf-8")
+            hasher.update(rel + b"|" + mtime)
+    return hasher.hexdigest()
+
+
+def _load_manifest():
+    if not os.path.exists(MANIFEST_CACHE):
+        return {}
+    try:
+        with open(MANIFEST_CACHE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_manifest(manifest: dict):
+    with open(MANIFEST_CACHE, "w") as f:
+        json.dump(manifest, f)
+
+
+def clear_cache():
+    """
+    Remove all cached artifacts.
+    Safe to call when the dataset has changed or you want a full rebuild.
+    """
+    for path in [
+        META_CACHE,
+        ASSET_CACHE,
+        TREE_CACHE,
+        TREEMAP_CACHE,
+        KPI_CACHE,
+        MANIFEST_CACHE,
+    ]:
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                # Non-fatal: if something can't be removed, we just leave it.
+                pass
+
+
+def load_all(force: bool = False):
+    """
+    Advanced, production-grade loader with caching and simple change detection.
+
+    - Uses cached results if available and the dataset hash hasn't changed.
+    - Recomputes only missing or invalidated pieces.
+    - `force=True` forces a full rebuild and cache overwrite.
+
+    Returns:
+        metadata (DataFrame),
+        assets (DataFrame),
+        tree_df (DataFrame),
+        kpis (dict),
+        treemap_data (dict).
+    """
+
+    # --------------------------------------------------
+    # 0. CHANGE DETECTION (JSON_ROOT + OBJ_ROOT)
+    # --------------------------------------------------
+    json_hash = _compute_dir_hash(JSON_ROOT)
+    obj_hash = _compute_dir_hash(OBJ_ROOT)
+
+    current_manifest = {
+        "json_hash": json_hash,
+        "obj_hash": obj_hash,
+    }
+
+    old_manifest = _load_manifest()
+    dataset_changed = (
+        old_manifest.get("json_hash") != json_hash
+        or old_manifest.get("obj_hash") != obj_hash
+    )
+
+    # If forced or dataset changed, we clear all caches
+    if force or dataset_changed:
+        clear_cache()
+        # Recreate cache dir because clear_cache may remove it
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        # We'll recompute everything and then save a new manifest.
 
     # --------------------------------------------------
     # 1. METADATA
     # --------------------------------------------------
-    if _load_if_exists(META_CACHE):
+    if os.path.exists(META_CACHE):
         metadata = _load_feather(META_CACHE)
     else:
         metadata = load_metadata_json()
+        if metadata is None:
+            metadata = pd.DataFrame()
         _save_feather(metadata, META_CACHE)
 
     # --------------------------------------------------
     # 2. ASSETS
     # --------------------------------------------------
-    if _load_if_exists(ASSET_CACHE):
+    if os.path.exists(ASSET_CACHE):
         assets = _load_feather(ASSET_CACHE)
     else:
         assets = load_obj_families()
+        if assets is None:
+            assets = pd.DataFrame()
         _save_feather(assets, ASSET_CACHE)
 
     # --------------------------------------------------
     # 3. TREE STRUCTURE
     # --------------------------------------------------
-    if _load_if_exists(TREE_CACHE):
+    if os.path.exists(TREE_CACHE):
         tree_df = _load_feather(TREE_CACHE)
     else:
         tree_df = build_tree_structure()
+        if tree_df is None:
+            tree_df = pd.DataFrame()
         _save_feather(tree_df, TREE_CACHE)
 
     # --------------------------------------------------
     # 4. TREEMAP DATA
     # --------------------------------------------------
-    if _load_if_exists(TREEMAP_CACHE):
+    if os.path.exists(TREEMAP_CACHE):
         treemap_data = _load_json(TREEMAP_CACHE)
     else:
         treemap_data = prepare_treemap_data(assets)
@@ -407,10 +494,15 @@ def load_all():
     # --------------------------------------------------
     # 5. KPIs
     # --------------------------------------------------
-    if _load_if_exists(KPI_CACHE):
+    if os.path.exists(KPI_CACHE):
         kpis = _load_json(KPI_CACHE)
     else:
         kpis = compute_kpis(assets, metadata)
         _save_json(kpis, KPI_CACHE)
+
+    # --------------------------------------------------
+    # 6. SAVE MANIFEST (for future change detection)
+    # --------------------------------------------------
+    _save_manifest(current_manifest)
 
     return metadata, assets, tree_df, kpis, treemap_data

@@ -22,22 +22,37 @@ def format_size_mb(size: float) -> str:
 def load_metadata_json() -> pd.DataFrame:
     """
     Load all JSON metadata files into a single DataFrame.
-    Assumes each JSON file is a dict with consistent keys.
+    Parallelized over JSON files for faster ingestion.
     """
     rows = []
 
     if not JSON_ROOT.exists():
         return pd.DataFrame()
 
-    for file in JSON_ROOT.glob("*.json"):
+    json_files = list(JSON_ROOT.glob("*.json"))
+    if not json_files:
+        return pd.DataFrame()
+
+    def _read_single_metadata(file: Path):
         try:
             with file.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-                # Optionally add filename as an id/link
+                if not isinstance(data, dict):
+                    # Skip non-dict JSON structures for now
+                    return None
                 data["__json_file"] = file.as_posix()
-                rows.append(data)
+                return data
         except Exception as e:
             print(f"[metadata] Error reading {file}: {e}")
+            return None
+
+    # Parallel JSON parsing
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor() as pool:
+        for result in pool.map(_read_single_metadata, json_files):
+            if result is not None:
+                rows.append(result)
 
     if not rows:
         return pd.DataFrame()
@@ -142,29 +157,38 @@ def load_obj_families():
     - polycount
     - material_count
     - hierarchy_depth
-    - folder_size_mb
+    - folder_size_mb (per variant: obj + mtl + hier)
     - asset_path
+
+    Parallelized over OBJ files for faster ingestion.
     """
-    rows = []
+    from concurrent.futures import ThreadPoolExecutor
 
     if not OBJ_ROOT.exists():
         return pd.DataFrame()
 
-    # Walk each asset family folder
+    # Collect all OBJ files and their families first (cheap)
+    obj_tasks = []
     for family_dir in OBJ_ROOT.iterdir():
         if not family_dir.is_dir():
             continue
-        
         asset_family = family_dir.name
-
-        # Walk each OBJ inside the family folder
         for obj_file in family_dir.glob("*.obj"):
+            obj_tasks.append((asset_family, obj_file))
+
+    if not obj_tasks:
+        return pd.DataFrame()
+
+    def _process_single_obj(task):
+        asset_family, obj_file = task
+        obj_file = Path(obj_file)
+        try:
             name = obj_file.stem  # variant name
 
             mtl_file = obj_file.with_suffix(".mtl")
             hier_file = obj_file.with_suffix(".hier")
 
-            # Polycount (already correct in your version)
+            # Polycount
             polycount = compute_polycount_from_obj(obj_file)
 
             # Triangle count (artist-friendly)
@@ -182,7 +206,7 @@ def load_obj_families():
             hier_size = hier_file.stat().st_size / (1024 * 1024) if hier_file.exists() else 0
             variant_size_mb = obj_size + mtl_size + hier_size
 
-            rows.append({
+            return {
                 "variant_name": name,
                 "asset_family": asset_family,
                 "polycount": polycount,
@@ -198,7 +222,17 @@ def load_obj_families():
                 "material_count_fmt": format_number(material_count),
                 "hierarchy_depth_fmt": format_number(hierarchy_depth),
                 "folder_size_fmt": format_size_mb(variant_size_mb),
-            })
+            }
+        except Exception as e:
+            print(f"[assets] Error processing {obj_file}: {e}")
+            return None
+
+    rows = []
+    # Parallel OBJ/MTL/HIER processing
+    with ThreadPoolExecutor() as pool:
+        for result in pool.map(_process_single_obj, obj_tasks):
+            if result is not None:
+                rows.append(result)
 
     if not rows:
         return pd.DataFrame()
